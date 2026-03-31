@@ -1,11 +1,16 @@
-import { Shader } from './shader'
+import { AppProvider } from './state/context'
+import { Canvas } from './components/Canvas'
+import { Toolbar } from './components/Toolbar'
 
-import shader from './shader.glsl'
-
-export const App = () => {
-    return <div style={{height: '100vh', width: '100vw'}}>
-        <Shader fs={shader} />
-    </div>
+export function App() {
+  return (
+    <AppProvider>
+      <div className="relative w-full h-full">
+        <Canvas />
+        <Toolbar />
+      </div>
+    </AppProvider>
+  )
 }
 
 export default App
