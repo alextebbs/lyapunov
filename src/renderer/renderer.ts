@@ -8,7 +8,9 @@ import vertSource from '../shaders/lyapunov.vert'
 import fragSource from '../shaders/lyapunov.frag'
 
 const TILE_SIZE = 256
-const FRAME_BUDGET_MS = 10 // max ms per frame for tile rendering
+const FRAME_BUDGET_MS = 10
+const INTERACTION_ITERATIONS = 128 // quality during interaction (single pass)
+const SETTLE_DELAY_MS = 200 // ms after last interaction before tile refinement
 
 export class LyapunovRenderer {
   private canvas: HTMLCanvasElement
@@ -25,7 +27,7 @@ export class LyapunovRenderer {
   // State
   private _center: [number, number] = [2.5, 3.5]
   private _zoom = 1
-  private _sequence: number[] = [0, 1] // AB
+  private _sequence: number[] = [0, 1]
   private _gradientStops: GradientStop[] = [
     { position: 0, color: [0, 0, 40] },
     { position: 0.35, color: [0, 80, 200] },
@@ -51,6 +53,7 @@ export class LyapunovRenderer {
   private interacting = false
   private interactionTimeout: ReturnType<typeof setTimeout> | null = null
   private needsRecompute = true
+  private tilesValid = false // whether tiles match current view
   private lambdaMin = -2
   private lambdaMax = 2
 
@@ -59,7 +62,6 @@ export class LyapunovRenderer {
     this.gl = createWebGL2Context(canvas)
     this.quad = createFullscreenQuad(this.gl)
 
-    // Compile shader programs
     this.program = createProgram(this.gl, vertSource, fragSource)
     this.uniforms = getUniformLocations(this.gl, this.program, [
       'uCenterHigh', 'uCenterLow', 'uZoom', 'uResolution',
@@ -68,7 +70,6 @@ export class LyapunovRenderer {
       'uGradient', 'uLambdaMin', 'uLambdaMax', 'uUseDouble',
     ])
 
-    // Composite shader (draws tile textures to screen)
     this.compositeProgram = createProgram(this.gl, COMPOSITE_VERT, COMPOSITE_FRAG)
     this.compositeUniforms = getUniformLocations(this.gl, this.compositeProgram, [
       'uTexture', 'uOffset', 'uScale',
@@ -98,29 +99,28 @@ export class LyapunovRenderer {
 
   setCenter(x: number, y: number) {
     this._center = [x, y]
-    this.needsRecompute = true
-    this.tileCache.markAllDirty()
+    this.viewChanged()
   }
 
   setZoom(zoom: number) {
     this._zoom = zoom
     this.targetZoom = zoom
     this.animatedZoom = zoom
-    this.needsRecompute = true
-    this.tileCache.markAllDirty()
+    this.viewChanged()
   }
 
   setSequence(seq: number[]) {
     this._sequence = seq
-    this.needsRecompute = true
+    this.viewChanged()
     this.tileCache.invalidateAll()
   }
 
   setGradientStops(stops: GradientStop[]) {
     this._gradientStops = stops
     uploadGradientTexture(this.gl, this.gradientTexture, stops)
-    // Gradient changes don't need fractal recompute — just re-composite
+    this.needsRecompute = true
     this.settled = false
+    this.tilesValid = false
   }
 
   setState(state: Partial<RendererState>) {
@@ -135,7 +135,7 @@ export class LyapunovRenderer {
       this._gradientStops = state.gradientStops
       uploadGradientTexture(this.gl, this.gradientTexture, state.gradientStops)
     }
-    this.needsRecompute = true
+    this.viewChanged()
     this.tileCache.invalidateAll()
   }
 
@@ -147,6 +147,13 @@ export class LyapunovRenderer {
 
   private notifyStateChange() {
     this._onStateChange?.(this.state)
+  }
+
+  /** Mark that the view (center/zoom) has changed */
+  private viewChanged() {
+    this.needsRecompute = true
+    this.settled = false
+    this.tilesValid = false
   }
 
   // -- Render Loop --
@@ -162,19 +169,18 @@ export class LyapunovRenderer {
   private frame() {
     // Handle resize
     if (resizeCanvas(this.canvas)) {
-      this.needsRecompute = true
-      this.tileCache.markAllDirty()
+      this.viewChanged()
     }
 
-    // Animate zoom smoothly
+    // Animate zoom smoothly (mouse wheel only — pinch sets directly)
     if (Math.abs(this.animatedZoom - this.targetZoom) > 0.001) {
       this.animatedZoom += (this.targetZoom - this.animatedZoom) * 0.15
-      this.needsRecompute = true
-      this.tileCache.markAllDirty()
-    } else {
+      this._zoom = this.animatedZoom
+      this.viewChanged()
+    } else if (this.animatedZoom !== this.targetZoom) {
       this.animatedZoom = this.targetZoom
+      this._zoom = this.animatedZoom
     }
-    this._zoom = this.animatedZoom
 
     // Apply momentum/inertia for panning
     if (!this.isDragging && (Math.abs(this.velocity[0]) > 0.0001 || Math.abs(this.velocity[1]) > 0.0001)) {
@@ -183,26 +189,59 @@ export class LyapunovRenderer {
       this._center[1] += this.velocity[1] * viewWidth / this.canvas.width
       this.velocity[0] *= 0.92
       this.velocity[1] *= 0.92
-      this.needsRecompute = true
-      this.tileCache.markAllDirty()
+      this.viewChanged()
       this.notifyStateChange()
     }
 
     if (!this.needsRecompute && this.settled) return
 
-    // Determine visible tile grid
+    if (this.interacting || !this.tilesValid) {
+      // INTERACTION MODE: render entire viewport in one draw call.
+      // Fast, consistent, no flashing. One shader invocation covers all pixels.
+      this.renderFullscreen(INTERACTION_ITERATIONS)
+      // Don't mark as settled — tiles still need refinement when idle
+    } else {
+      // IDLE MODE: tile-based progressive refinement for high quality.
+      this.renderTiles()
+    }
+  }
+
+  /**
+   * Render the entire viewport in a single draw call.
+   * Used during interaction for instant, consistent visual feedback.
+   */
+  private renderFullscreen(iterations: number) {
+    const gl = this.gl
+    const useDouble = this._zoom > DOUBLE_EMULATION_THRESHOLD
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    gl.viewport(0, 0, this.canvas.width, this.canvas.height)
+    gl.useProgram(this.program)
+
+    this.setShaderUniforms(0, 0, 1, 1, iterations, useDouble)
+
+    gl.bindVertexArray(this.quad.vao)
+    gl.drawArrays(gl.TRIANGLES, 0, 6)
+    gl.bindVertexArray(null)
+  }
+
+  /**
+   * Tile-based progressive rendering. Only runs when not interacting.
+   */
+  private renderTiles() {
+    const gl = this.gl
     const cols = Math.ceil(this.canvas.width / TILE_SIZE)
     const rows = Math.ceil(this.canvas.height / TILE_SIZE)
     const useDouble = this._zoom > DOUBLE_EMULATION_THRESHOLD
-
-    // Render tiles with frame budget
-    const startTime = performance.now()
-    let tilesRenderedThisFrame = 0
-    const maxPassThisFrame = this.interacting ? 2 : PASS_ITERATIONS.length
-
-    // Quantized zoom for tile keys
     const zoomLevel = Math.round(Math.log2(this._zoom) * 4)
 
+    // If tiles don't match current view, invalidate and start fresh
+    if (!this.tilesValid) {
+      this.tileCache.invalidateAll()
+      this.tilesValid = true
+    }
+
+    const startTime = performance.now()
     let allSettled = true
 
     for (let row = 0; row < rows; row++) {
@@ -215,25 +254,42 @@ export class LyapunovRenderer {
         const key = { col, row, zoom: zoomLevel }
         const tile = this.tileCache.create(key)
 
-        if (tile.pass >= maxPassThisFrame && !tile.dirty) continue
+        if (tile.pass >= PASS_ITERATIONS.length && !tile.dirty) continue
+
+        // If dirty, restart from pass 0
+        if (tile.dirty) {
+          tile.pass = 0
+          tile.dirty = false
+        }
+
         if (tile.pass >= PASS_ITERATIONS.length) continue
 
         allSettled = false
 
-        // Determine iteration count for this pass
-        const passIdx = Math.min(tile.pass, PASS_ITERATIONS.length - 1)
-        const iterations = PASS_ITERATIONS[passIdx]!
+        const iterations = PASS_ITERATIONS[tile.pass]!
 
         // Render to tile FBO
-        this.renderTile(tile, col, row, cols, rows, iterations, useDouble)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, tile.framebuffer)
+        gl.viewport(0, 0, TILE_SIZE, TILE_SIZE)
+        gl.useProgram(this.program)
+
+        this.setShaderUniforms(
+          col / cols, row / rows,
+          1 / cols, 1 / rows,
+          iterations, useDouble,
+        )
+
+        gl.bindVertexArray(this.quad.vao)
+        gl.drawArrays(gl.TRIANGLES, 0, 6)
+        gl.bindVertexArray(null)
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+
         tile.pass++
-        tile.dirty = false
-        tilesRenderedThisFrame++
       }
       if (performance.now() - startTime > FRAME_BUDGET_MS) break
     }
 
-    // Composite all tiles to screen
+    // Composite tiles to screen
     this.composite(cols, rows, zoomLevel)
 
     this.settled = allSettled
@@ -242,22 +298,17 @@ export class LyapunovRenderer {
     }
   }
 
-  private renderTile(
-    tile: { framebuffer: WebGLFramebuffer },
-    col: number,
-    row: number,
-    totalCols: number,
-    totalRows: number,
-    iterations: number,
-    useDouble: boolean,
+  /**
+   * Set all uniforms for the Lyapunov shader.
+   * Works for both fullscreen and tile rendering.
+   */
+  private setShaderUniforms(
+    tileOffsetX: number, tileOffsetY: number,
+    tileSizeX: number, tileSizeY: number,
+    iterations: number, useDouble: boolean,
   ) {
     const gl = this.gl
 
-    gl.bindFramebuffer(gl.FRAMEBUFFER, tile.framebuffer)
-    gl.viewport(0, 0, TILE_SIZE, TILE_SIZE)
-    gl.useProgram(this.program)
-
-    // View uniforms
     const [highX, lowX] = splitDouble(this._center[0])
     const [highY, lowY] = splitDouble(this._center[1])
     gl.uniform2f(this.uniforms.uCenterHigh!, highX, highY)
@@ -265,11 +316,9 @@ export class LyapunovRenderer {
     gl.uniform1f(this.uniforms.uZoom!, this._zoom)
     gl.uniform2f(this.uniforms.uResolution!, this.canvas.width, this.canvas.height)
 
-    // Tile position within viewport
-    gl.uniform2f(this.uniforms.uTileOffset!, col / totalCols, row / totalRows)
-    gl.uniform2f(this.uniforms.uTileSize!, 1 / totalCols, 1 / totalRows)
+    gl.uniform2f(this.uniforms.uTileOffset!, tileOffsetX, tileOffsetY)
+    gl.uniform2f(this.uniforms.uTileSize!, tileSizeX, tileSizeY)
 
-    // Fractal uniforms
     const seqArray = new Int32Array(64)
     for (let i = 0; i < Math.min(this._sequence.length, 64); i++) {
       seqArray[i] = this._sequence[i]!
@@ -278,21 +327,13 @@ export class LyapunovRenderer {
     gl.uniform1i(this.uniforms.uSequenceLength!, this._sequence.length)
     gl.uniform1i(this.uniforms.uIterations!, iterations)
 
-    // Gradient
     gl.activeTexture(gl.TEXTURE0)
     gl.bindTexture(gl.TEXTURE_2D, this.gradientTexture)
     gl.uniform1i(this.uniforms.uGradient!, 0)
     gl.uniform1f(this.uniforms.uLambdaMin!, this.lambdaMin)
     gl.uniform1f(this.uniforms.uLambdaMax!, this.lambdaMax)
 
-    // Double emulation
     gl.uniform1i(this.uniforms.uUseDouble as WebGLUniformLocation, useDouble ? 1 : 0)
-
-    // Draw
-    gl.bindVertexArray(this.quad.vao)
-    gl.drawArrays(gl.TRIANGLES, 0, 6)
-    gl.bindVertexArray(null)
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
   }
 
   private composite(cols: number, rows: number, zoomLevel: number) {
@@ -301,7 +342,6 @@ export class LyapunovRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null)
     gl.viewport(0, 0, this.canvas.width, this.canvas.height)
     gl.useProgram(this.compositeProgram)
-
     gl.bindVertexArray(this.quad.vao)
 
     for (let row = 0; row < rows; row++) {
@@ -314,7 +354,6 @@ export class LyapunovRenderer {
         gl.bindTexture(gl.TEXTURE_2D, tile.texture)
         gl.uniform1i(this.compositeUniforms.uTexture!, 0)
 
-        // Map tile to its screen position in clip space
         const x = (col / cols) * 2 - 1
         const y = (row / rows) * 2 - 1
         const w = (1 / cols) * 2
@@ -331,33 +370,26 @@ export class LyapunovRenderer {
 
   // -- Event Handling --
   //
-  // Strategy: touch events handle ALL touch interaction (1-finger pan,
-  // 2-finger pinch+pan). Pointer events ONLY handle mouse (pointerType==='mouse').
-  // This avoids the dual-firing problem where both touch and pointer events
-  // fire for the same finger on mobile.
+  // Touch events handle ALL touch interaction (1-finger pan, 2-finger pinch+pan).
+  // Pointer events ONLY handle mouse (filtered by pointerType==='mouse').
 
   private addEventListeners() {
-    // Mouse only — pointer events filtered to mouse in handlers
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
     this.canvas.addEventListener('pointermove', this.onPointerMove)
     this.canvas.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('pointercancel', this.onPointerUp)
 
-    // Touch — handles ALL touch interaction
     this.canvas.addEventListener('touchstart', this.onTouchStart, { passive: false })
     this.canvas.addEventListener('touchmove', this.onTouchMove, { passive: false })
     this.canvas.addEventListener('touchend', this.onTouchEnd, { passive: false })
     this.canvas.addEventListener('touchcancel', this.onTouchEnd, { passive: false })
 
-    // Mouse wheel zoom (desktop)
     this.canvas.addEventListener('wheel', this.onWheel, { passive: false })
 
-    // Prevent Safari proprietary gesture events
     this.canvas.addEventListener('gesturestart', preventDefault, { passive: false })
     this.canvas.addEventListener('gesturechange', preventDefault, { passive: false })
     this.canvas.addEventListener('gestureend', preventDefault, { passive: false })
 
-    // Prevent pull-to-refresh and overscroll globally
     document.addEventListener('touchmove', preventDefaultIfCanvas, { passive: false })
   }
 
@@ -412,13 +444,11 @@ export class LyapunovRenderer {
     this.markInteracting()
 
     if (e.touches.length === 1) {
-      // Single finger — start drag
       this.isDragging = true
       this.isPinching = false
       this.lastPointer = [e.touches[0]!.clientX, e.touches[0]!.clientY]
       this.velocity = [0, 0]
     } else if (e.touches.length === 2) {
-      // Two fingers — start pinch
       this.isPinching = true
       this.isDragging = false
       this.velocity = [0, 0]
@@ -436,7 +466,6 @@ export class LyapunovRenderer {
     e.preventDefault()
 
     if (e.touches.length === 1 && this.isDragging && !this.isPinching) {
-      // Single finger drag
       const t = e.touches[0]!
       const dx = t.clientX - this.lastPointer[0]
       const dy = t.clientY - this.lastPointer[1]
@@ -445,20 +474,17 @@ export class LyapunovRenderer {
       this.panBy(dx, dy)
       this.lastPointer = [t.clientX, t.clientY]
     } else if (e.touches.length === 2 && this.isPinching) {
-      // Two finger pinch + pan
       const [t0, t1] = [e.touches[0]!, e.touches[1]!]
 
       const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY)
       const centerX = (t0.clientX + t1.clientX) / 2
       const centerY = (t0.clientY + t1.clientY) / 2
 
-      // Zoom — applied directly (no animation) for instant response
       if (this.lastPinchDist > 0) {
         const scale = dist / this.lastPinchDist
         this.zoomAtDirect(centerX, centerY, scale)
       }
 
-      // Pan from midpoint movement
       const dx = centerX - this.lastPinchCenter[0]
       const dy = centerY - this.lastPinchCenter[1]
       if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
@@ -467,7 +493,6 @@ export class LyapunovRenderer {
 
       this.lastPinchDist = dist
       this.lastPinchCenter = [centerX, centerY]
-      this.markInteracting()
     }
   }
 
@@ -475,12 +500,10 @@ export class LyapunovRenderer {
     e.preventDefault()
 
     if (e.touches.length === 0) {
-      // All fingers lifted
       this.isDragging = false
       this.isPinching = false
       this.markInteractionEnd()
     } else if (e.touches.length === 1) {
-      // Went from pinch to single finger — transition to drag
       this.isPinching = false
       this.lastPinchDist = 0
       this.isDragging = true
@@ -499,15 +522,10 @@ export class LyapunovRenderer {
     this._center[0] -= fractalDx
     this._center[1] += fractalDy
 
-    this.needsRecompute = true
-    this.tileCache.markAllDirty()
+    this.viewChanged()
     this.notifyStateChange()
-    this.markInteracting()
   }
 
-  /**
-   * Zoom with animation (for mouse wheel — small discrete steps feel better animated).
-   */
   private zoomAt(clientX: number, clientY: number, scaleFactor: number) {
     const rect = this.canvas.getBoundingClientRect()
     const cursorX = (clientX - rect.left) / rect.width
@@ -527,15 +545,10 @@ export class LyapunovRenderer {
     this._center[0] = fracX - (cursorX - 0.5) * newViewWidth
     this._center[1] = fracY - (cursorY - 0.5) * newViewHeight
 
-    this.needsRecompute = true
-    this.tileCache.markAllDirty()
+    this.viewChanged()
     this.notifyStateChange()
   }
 
-  /**
-   * Zoom applied instantly (for pinch — fingers ARE the animation,
-   * any lerp/delay feels laggy and wrong).
-   */
   private zoomAtDirect(clientX: number, clientY: number, scaleFactor: number) {
     const rect = this.canvas.getBoundingClientRect()
     const cursorX = (clientX - rect.left) / rect.width
@@ -548,7 +561,6 @@ export class LyapunovRenderer {
     const fracX = this._center[0] + (cursorX - 0.5) * viewWidth
     const fracY = this._center[1] + (cursorY - 0.5) * viewHeight
 
-    // Apply directly to all zoom values — no animation
     const newZoom = this._zoom * scaleFactor
     this._zoom = newZoom
     this.targetZoom = newZoom
@@ -559,8 +571,7 @@ export class LyapunovRenderer {
     this._center[0] = fracX - (cursorX - 0.5) * newViewWidth
     this._center[1] = fracY - (cursorY - 0.5) * newViewHeight
 
-    this.needsRecompute = true
-    this.tileCache.markAllDirty()
+    this.viewChanged()
     this.notifyStateChange()
   }
 
@@ -577,6 +588,7 @@ export class LyapunovRenderer {
   private markInteracting() {
     this.interacting = true
     this.settled = false
+    this.needsRecompute = true
     if (this.interactionTimeout) clearTimeout(this.interactionTimeout)
   }
 
@@ -585,12 +597,9 @@ export class LyapunovRenderer {
     this.interactionTimeout = setTimeout(() => {
       this.interacting = false
       this.settled = false
-      for (const tile of this.tileCache.all()) {
-        if (tile.pass < PASS_ITERATIONS.length) {
-          tile.dirty = true
-        }
-      }
-    }, 150)
+      this.tilesValid = false // force tiles to re-render from current view
+      this.needsRecompute = true
+    }, SETTLE_DELAY_MS)
   }
 
   destroy() {
@@ -606,7 +615,7 @@ export class LyapunovRenderer {
   }
 }
 
-// -- Helpers for preventing default touch behaviors --
+// -- Helpers --
 
 function preventDefault(e: Event) {
   e.preventDefault()
@@ -618,7 +627,7 @@ function preventDefaultIfCanvas(e: Event) {
   }
 }
 
-// -- Composite shader (blits tile textures to screen) --
+// -- Composite shader --
 
 const COMPOSITE_VERT = `#version 300 es
 layout(location = 0) in vec2 aPosition;
