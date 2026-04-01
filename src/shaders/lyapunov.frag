@@ -27,7 +27,7 @@ uniform float uLambdaMax;
 // Double emulation toggle
 uniform bool uUseDouble;
 
-#pragma glslify: import('./double.glsl')
+#include "./double.glsl"
 
 /**
  * Compute Lyapunov exponent at point (a, b) in parameter space.
