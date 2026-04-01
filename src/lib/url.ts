@@ -3,7 +3,7 @@ import type { GradientStop, RendererState } from '../renderer/types'
 const DEFAULT_STATE: RendererState = {
   center: [2.5, 3.5],
   zoom: 1,
-  sequence: [0, 1], // AB
+  sequence: [0, 1, 1, 0], // ABBA
   gradientStops: [
     { position: 0, color: [0, 0, 40] },
     { position: 0.35, color: [0, 80, 200] },

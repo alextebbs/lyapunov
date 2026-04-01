@@ -27,7 +27,7 @@ export class LyapunovRenderer {
   // State
   private _center: [number, number] = [2.5, 3.5]
   private _zoom = 1
-  private _sequence: number[] = [0, 1]
+  private _sequence: number[] = [0, 1, 1, 0] // ABBA
   private _gradientStops: GradientStop[] = [
     { position: 0, color: [0, 0, 40] },
     { position: 0.35, color: [0, 80, 200] },

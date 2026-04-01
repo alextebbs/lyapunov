@@ -5,7 +5,7 @@ import { ShareButton } from './ShareButton'
 import { useAppState } from '../state/context'
 
 export function Toolbar() {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const { center, zoom } = useAppState()
 
   return (
