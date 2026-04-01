@@ -36,6 +36,7 @@ float lyapunovExponent(float a, float b, int iterations) {
   float x = 0.5;
   float lambda = 0.0;
 
+  // Warm-up: iterate without accumulating to settle into attractor
   int warmup = min(iterations / 4, 128);
   for (int i = 0; i < warmup; i++) {
     float r = uSequence[i % uSequenceLength] == 0 ? a : b;
@@ -43,15 +44,22 @@ float lyapunovExponent(float a, float b, int iterations) {
     x = clamp(x, 0.0001, 0.9999);
   }
 
+  // Accumulate Lyapunov exponent.
+  // CRITICAL: derivative must be evaluated at x_n BEFORE the iteration,
+  // because λ = (1/N) Σ ln|f'(x_n)| where x_{n+1} = f(x_n).
   for (int i = 0; i < iterations; i++) {
-    float r = uSequence[i % uSequenceLength] == 0 ? a : b;
-    x = r * x * (1.0 - x);
-    x = clamp(x, 0.0001, 0.9999);
+    // Sequence index continues from warmup
+    float r = uSequence[(warmup + i) % uSequenceLength] == 0 ? a : b;
 
+    // Compute derivative at CURRENT x (before update)
     float deriv = abs(r * (1.0 - 2.0 * x));
     if (deriv > 0.0) {
       lambda += log(deriv);
     }
+
+    // THEN iterate
+    x = r * x * (1.0 - x);
+    x = clamp(x, 0.0001, 0.9999);
   }
 
   return lambda / float(iterations);
