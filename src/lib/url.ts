@@ -4,7 +4,7 @@ const DEFAULT_STATE: RendererState = {
   // Zircon Zity: BBBBBBAAAAAA in region (A,B) in [3.4, 4.0] × [2.5, 3.4]
   // Center of that region: A=3.7, B=2.95
   center: [3.7, 2.95],
-  zoom: 5.5,
+  zoom: 3.5,
   sequence: [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0], // BBBBBBAAAAAA
   gradientStops: [
     { position: 0, color: [10, 5, 0] },

@@ -26,7 +26,7 @@ export class LyapunovRenderer {
 
   // State
   private _center: [number, number] = [3.7, 2.95]
-  private _zoom = 5.5
+  private _zoom = 3.5
   private _sequence: number[] = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0] // BBBBBBAAAAAA
   private _gradientStops: GradientStop[] = [
     { position: 0, color: [10, 5, 0] },
@@ -42,8 +42,8 @@ export class LyapunovRenderer {
   private isDragging = false
   private lastPointer: [number, number] = [0, 0]
   private velocity: [number, number] = [0, 0]
-  private targetZoom = 5.5
-  private animatedZoom = 5.5
+  private targetZoom = 3.5
+  private animatedZoom = 3.5
 
   // Multi-touch state
   private isPinching = false
