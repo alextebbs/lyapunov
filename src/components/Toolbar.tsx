@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { SequenceEditor } from './SequenceEditor'
 import { GradientEditor } from './GradientEditor'
 import { ScenePresets } from './ScenePresets'
+import { ParameterControls } from './ParameterControls'
 import { ShareButton } from './ShareButton'
 import { useAppState } from '../state/context'
 
@@ -36,8 +37,11 @@ export function Toolbar() {
             </p>
           </div>
 
-          {/* Presets - the main attraction */}
+          {/* Presets */}
           <ScenePresets />
+
+          {/* Parameters */}
+          <ParameterControls />
 
           {/* Advanced toggle */}
           <button

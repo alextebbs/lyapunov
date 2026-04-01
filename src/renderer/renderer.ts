@@ -58,6 +58,7 @@ export class LyapunovRenderer {
   private tilesValid = false // whether tiles match current view
   private lambdaMin = -0.5
   private lambdaMax = 0.5
+  private _x0 = 0.5
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -69,7 +70,7 @@ export class LyapunovRenderer {
       'uCenterHigh', 'uCenterLow', 'uZoom', 'uResolution',
       'uTileOffset', 'uTileSize',
       'uSequence', 'uSequenceLength', 'uIterations',
-      'uGradient', 'uLambdaMin', 'uLambdaMax', 'uUseDouble',
+      'uGradient', 'uLambdaMin', 'uLambdaMax', 'uX0', 'uUseDouble',
     ])
 
     this.compositeProgram = createProgram(this.gl, COMPOSITE_VERT, COMPOSITE_FRAG)
@@ -96,6 +97,8 @@ export class LyapunovRenderer {
         ...s,
         color: [...s.color] as [number, number, number],
       })),
+      lambdaRange: [this.lambdaMin, this.lambdaMax],
+      x0: this._x0,
     }
   }
 
@@ -125,6 +128,19 @@ export class LyapunovRenderer {
     this.tilesValid = false
   }
 
+  setLambdaRange(min: number, max: number) {
+    this.lambdaMin = min
+    this.lambdaMax = max
+    this.viewChanged()
+    this.tileCache.invalidateAll()
+  }
+
+  setX0(x0: number) {
+    this._x0 = x0
+    this.viewChanged()
+    this.tileCache.invalidateAll()
+  }
+
   setState(state: Partial<RendererState>) {
     if (state.center) this._center = state.center
     if (state.zoom !== undefined) {
@@ -136,6 +152,13 @@ export class LyapunovRenderer {
     if (state.gradientStops) {
       this._gradientStops = state.gradientStops
       uploadGradientTexture(this.gl, this.gradientTexture, state.gradientStops)
+    }
+    if (state.lambdaRange) {
+      this.lambdaMin = state.lambdaRange[0]
+      this.lambdaMax = state.lambdaRange[1]
+    }
+    if (state.x0 !== undefined) {
+      this._x0 = state.x0
     }
     this.viewChanged()
     this.tileCache.invalidateAll()
@@ -334,6 +357,7 @@ export class LyapunovRenderer {
     gl.uniform1i(this.uniforms.uGradient!, 0)
     gl.uniform1f(this.uniforms.uLambdaMin!, this.lambdaMin)
     gl.uniform1f(this.uniforms.uLambdaMax!, this.lambdaMax)
+    gl.uniform1f(this.uniforms.uX0!, this._x0)
 
     gl.uniform1i(this.uniforms.uUseDouble as WebGLUniformLocation, useDouble ? 1 : 0)
   }

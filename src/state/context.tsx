@@ -8,6 +8,8 @@ interface AppState extends RendererState {
   setZoom: (z: number) => void
   setSequence: (seq: number[]) => void
   setGradientStops: (stops: GradientStop[]) => void
+  setLambdaRange: (range: [number, number]) => void
+  setX0: (x0: number) => void
   rendererRef: React.MutableRefObject<LyapunovRenderer | null>
 }
 
@@ -23,6 +25,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [zoom, setZoomState] = useState(initial.zoom)
   const [sequence, setSequenceState] = useState(initial.sequence)
   const [gradientStops, setGradientStopsState] = useState(initial.gradientStops)
+  const [lambdaRange, setLambdaRangeState] = useState<[number, number]>(initial.lambdaRange)
+  const [x0, setX0State] = useState(initial.x0)
+
+  const getFullState = useCallback((): RendererState => ({
+    center, zoom, sequence, gradientStops, lambdaRange, x0,
+  }), [center, zoom, sequence, gradientStops, lambdaRange, x0])
 
   const updateUrl = useCallback((state: RendererState) => {
     if (urlUpdateTimer.current) clearTimeout(urlUpdateTimer.current)
@@ -35,26 +43,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const setCenter = useCallback((x: number, y: number) => {
     setCenterState([x, y])
     rendererRef.current?.setCenter(x, y)
-    updateUrl({ center: [x, y], zoom, sequence, gradientStops })
-  }, [zoom, sequence, gradientStops, updateUrl])
+    updateUrl({ ...getFullState(), center: [x, y] })
+  }, [getFullState, updateUrl])
 
   const setZoom = useCallback((z: number) => {
     setZoomState(z)
     rendererRef.current?.setZoom(z)
-    updateUrl({ center, zoom: z, sequence, gradientStops })
-  }, [center, sequence, gradientStops, updateUrl])
+    updateUrl({ ...getFullState(), zoom: z })
+  }, [getFullState, updateUrl])
 
   const setSequence = useCallback((seq: number[]) => {
     setSequenceState(seq)
     rendererRef.current?.setSequence(seq)
-    updateUrl({ center, zoom, sequence: seq, gradientStops })
-  }, [center, zoom, gradientStops, updateUrl])
+    updateUrl({ ...getFullState(), sequence: seq })
+  }, [getFullState, updateUrl])
 
   const setGradientStops = useCallback((stops: GradientStop[]) => {
     setGradientStopsState(stops)
     rendererRef.current?.setGradientStops(stops)
-    updateUrl({ center, zoom, sequence, gradientStops: stops })
-  }, [center, zoom, sequence, updateUrl])
+    updateUrl({ ...getFullState(), gradientStops: stops })
+  }, [getFullState, updateUrl])
+
+  const setLambdaRange = useCallback((range: [number, number]) => {
+    setLambdaRangeState(range)
+    rendererRef.current?.setLambdaRange(range[0], range[1])
+    updateUrl({ ...getFullState(), lambdaRange: range })
+  }, [getFullState, updateUrl])
+
+  const setX0 = useCallback((val: number) => {
+    setX0State(val)
+    rendererRef.current?.setX0(val)
+    updateUrl({ ...getFullState(), x0: val })
+  }, [getFullState, updateUrl])
 
   // Listen for renderer state changes (from direct interaction like panning)
   useEffect(() => {
@@ -75,6 +95,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setZoomState(state.zoom)
       setSequenceState(state.sequence)
       setGradientStopsState(state.gradientStops)
+      setLambdaRangeState(state.lambdaRange)
+      setX0State(state.x0)
       rendererRef.current?.setState(state)
     }
     window.addEventListener('hashchange', handler)
@@ -88,10 +110,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         zoom,
         sequence,
         gradientStops,
+        lambdaRange,
+        x0,
         setCenter,
         setZoom,
         setSequence,
         setGradientStops,
+        setLambdaRange,
+        setX0,
         rendererRef,
       }}
     >

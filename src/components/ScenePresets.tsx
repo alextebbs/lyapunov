@@ -4,6 +4,15 @@ import type { RendererState } from '../renderer/types'
 // Helper: convert "ABBAAB" string to number array
 const seq = (s: string) => s.split('').map(c => (c === 'A' ? 0 : 1))
 
+// Helper: build a full RendererState with defaults for new fields
+function scene(partial: Omit<RendererState, 'lambdaRange' | 'x0'> & { lambdaRange?: [number, number]; x0?: number }): RendererState {
+  return {
+    ...partial,
+    lambdaRange: partial.lambdaRange ?? [-0.5, 0.5],
+    x0: partial.x0 ?? 0.5,
+  }
+}
+
 export interface Scene {
   label: string
   seq: string
@@ -149,334 +158,336 @@ export const SCENES: Scene[] = [
   {
     label: 'Zircon Zity',
     seq: 'BBBBBBAAAAAA',
-    state: {
+    state: scene({
       sequence: seq('BBBBBBAAAAAA'),
       center: [3.7, 2.95],
       zoom: 3.5,
       gradientStops: G.zirconZity,
-    },
+    }),
   },
   {
     label: 'Zircon Zity II',
     seq: 'BBBBBBAAAAAA',
-    state: {
+    state: scene({
       sequence: seq('BBBBBBAAAAAA'),
       center: [3.7, 2.95],
       zoom: 3.5,
       gradientStops: G.sunset,
-    },
+    }),
   },
   {
     label: 'Zircon Deep',
     seq: 'BBBBBBAAAAAA',
-    state: {
+    state: scene({
       sequence: seq('BBBBBBAAAAAA'),
       center: [3.564, 3.020],
       zoom: 50.0,
       gradientStops: G.thermal,
-    },
+    }),
   },
 
   // ─── AB basic ───
   {
     label: 'Origin',
     seq: 'AB',
-    state: {
+    state: scene({
       sequence: seq('AB'),
       center: [2.0, 2.0],
       zoom: 1.0,
       gradientStops: G.plasma,
-    },
+    }),
   },
   {
     label: 'AB Ember',
     seq: 'AB',
-    state: {
+    state: scene({
       sequence: seq('AB'),
       center: [3.3, 3.3],
       zoom: 4.0,
       gradientStops: G.ember,
-    },
+    }),
   },
   {
     label: 'AB Neon',
     seq: 'AB',
-    state: {
+    state: scene({
       sequence: seq('AB'),
       center: [3.5, 3.5],
       zoom: 6.0,
       gradientStops: G.neon,
-    },
+    }),
   },
 
   // ─── AABAB ───
   {
     label: 'Coral Reef',
     seq: 'AABAB',
-    state: {
+    state: scene({
       sequence: seq('AABAB'),
       center: [3.4, 3.4],
       zoom: 5.0,
       gradientStops: G.sunset,
-    },
+    }),
   },
   {
     label: 'Coral Arctic',
     seq: 'AABAB',
-    state: {
+    state: scene({
       sequence: seq('AABAB'),
       center: [3.6, 3.1],
       zoom: 8.0,
       gradientStops: G.arctic,
-    },
+    }),
   },
 
   // ─── ABBA family ───
   {
     label: 'ABBA Classic',
     seq: 'ABBA',
-    state: {
+    state: scene({
       sequence: seq('ABBA'),
       center: [3.5, 3.5],
       zoom: 4.0,
       gradientStops: G.stainedGlass,
-    },
+    }),
   },
   {
     label: 'ABBA Rose',
     seq: 'ABBA',
-    state: {
+    state: scene({
       sequence: seq('ABBA'),
       center: [3.7, 3.3],
       zoom: 8.0,
       gradientStops: G.rose,
-    },
+    }),
   },
   {
     label: 'ABBA Thermal',
     seq: 'ABBA',
-    state: {
+    state: scene({
       sequence: seq('ABBA'),
       center: [3.45, 3.55],
       zoom: 12.0,
       gradientStops: G.thermal,
-    },
+    }),
   },
 
   // ─── ABBAAB ───
   {
     label: 'Stained Glass',
     seq: 'ABBAAB',
-    state: {
+    state: scene({
       sequence: seq('ABBAAB'),
       center: [3.5, 3.5],
       zoom: 4.0,
       gradientStops: G.stainedGlass,
-    },
+    }),
   },
   {
     label: 'ABBAAB UV',
     seq: 'ABBAAB',
-    state: {
+    state: scene({
       sequence: seq('ABBAAB'),
       center: [3.6, 3.2],
       zoom: 6.0,
       gradientStops: G.ultraviolet,
-    },
+    }),
   },
 
   // ─── BBAABA ───
   {
     label: 'Dendrite',
     seq: 'BBAABA',
-    state: {
+    state: scene({
       sequence: seq('BBAABA'),
       center: [3.6, 3.2],
       zoom: 6.0,
       gradientStops: G.jungle,
-    },
+    }),
   },
   {
     label: 'BBAABA Copper',
     seq: 'BBAABA',
-    state: {
+    state: scene({
       sequence: seq('BBAABA'),
       center: [3.55, 3.35],
       zoom: 10.0,
       gradientStops: G.copper,
-    },
+    }),
   },
 
   // ─── AABB family ───
   {
     label: 'AABB Ocean',
     seq: 'AABB',
-    state: {
+    state: scene({
       sequence: seq('AABB'),
       center: [3.4, 3.4],
       zoom: 5.0,
       gradientStops: G.ocean,
-    },
+    }),
   },
   {
     label: 'AABB Plasma',
     seq: 'AABB',
-    state: {
+    state: scene({
       sequence: seq('AABB'),
       center: [3.6, 3.0],
       zoom: 8.0,
       gradientStops: G.plasma,
-    },
+    }),
   },
 
   // ─── AABBAABB ───
   {
     label: 'AABBAABB Weave',
     seq: 'AABBAABB',
-    state: {
+    state: scene({
       sequence: seq('AABBAABB'),
       center: [3.5, 3.2],
       zoom: 5.0,
       gradientStops: G.stainedGlass,
-    },
+    }),
   },
 
   // ─── Long sequences ───
   {
     label: 'Triple Wave',
     seq: 'AAABBBAAABBB',
-    state: {
+    state: scene({
       sequence: seq('AAABBBAAABBB'),
       center: [3.5, 3.0],
       zoom: 4.0,
       gradientStops: G.arctic,
-    },
+    }),
   },
   {
     label: 'Triple Fire',
     seq: 'AAABBB',
-    state: {
+    state: scene({
       sequence: seq('AAABBB'),
       center: [3.6, 3.1],
       zoom: 6.0,
       gradientStops: G.ember,
-    },
+    }),
   },
   {
     label: 'Cascade',
     seq: 'AABBBA',
-    state: {
+    state: scene({
       sequence: seq('AABBBA'),
       center: [3.5, 3.3],
       zoom: 5.0,
       gradientStops: G.ocean,
-    },
+    }),
   },
 
   // ─── Asymmetric sequences ───
   {
     label: 'ABBB Sunset',
     seq: 'ABBB',
-    state: {
+    state: scene({
       sequence: seq('ABBB'),
       center: [3.5, 3.5],
       zoom: 4.0,
       gradientStops: G.sunset,
-    },
+    }),
   },
   {
     label: 'AAAB Jungle',
     seq: 'AAAB',
-    state: {
+    state: scene({
       sequence: seq('AAAB'),
       center: [3.4, 3.6],
       zoom: 5.0,
       gradientStops: G.jungle,
-    },
+    }),
   },
   {
     label: 'ABBBBA Rose',
     seq: 'ABBBBA',
-    state: {
+    state: scene({
       sequence: seq('ABBBBA'),
       center: [3.5, 3.3],
       zoom: 6.0,
       gradientStops: G.rose,
-    },
+    }),
   },
 
   // ─── Complex long sequences ───
   {
     label: 'Tapestry',
     seq: 'ABBAABBA',
-    state: {
+    state: scene({
       sequence: seq('ABBAABBA'),
       center: [3.5, 3.3],
       zoom: 5.0,
       gradientStops: G.copper,
-    },
+    }),
   },
   {
     label: 'Labyrinth',
     seq: 'AABABABB',
-    state: {
+    state: scene({
       sequence: seq('AABABABB'),
       center: [3.5, 3.4],
       zoom: 6.0,
       gradientStops: G.ultraviolet,
-    },
+    }),
   },
   {
     label: 'Filaments',
     seq: 'ABBABBA',
-    state: {
+    state: scene({
       sequence: seq('ABBABBA'),
       center: [3.55, 3.25],
       zoom: 8.0,
       gradientStops: G.neon,
-    },
+    }),
   },
   {
     label: 'Cathedral',
     seq: 'AABBAAB',
-    state: {
+    state: scene({
       sequence: seq('AABBAAB'),
       center: [3.5, 3.5],
       zoom: 5.0,
       gradientStops: G.stainedGlass,
-    },
+    }),
   },
   {
     label: 'Nebula',
     seq: 'ABABABAB',
-    state: {
+    state: scene({
       sequence: seq('ABABABAB'),
       center: [3.4, 3.4],
       zoom: 4.0,
       gradientStops: G.plasma,
-    },
+    }),
   },
   {
     label: 'Mono ABBA',
     seq: 'ABBA',
-    state: {
+    state: scene({
       sequence: seq('ABBA'),
       center: [3.5, 3.5],
       zoom: 4.0,
       gradientStops: G.monochrome,
-    },
+    }),
   },
 ]
 
 export function ScenePresets() {
-  const { setCenter, setZoom, setSequence, setGradientStops, rendererRef } = useAppState()
+  const { setCenter, setZoom, setSequence, setGradientStops, setLambdaRange, setX0, rendererRef } = useAppState()
 
-  const applyScene = (scene: RendererState) => {
-    rendererRef.current?.setState(scene)
-    setSequence(scene.sequence)
-    setGradientStops(scene.gradientStops)
-    setCenter(scene.center[0], scene.center[1])
-    setZoom(scene.zoom)
+  const applyScene = (s: RendererState) => {
+    rendererRef.current?.setState(s)
+    setSequence(s.sequence)
+    setGradientStops(s.gradientStops)
+    setLambdaRange(s.lambdaRange)
+    setX0(s.x0)
+    setCenter(s.center[0], s.center[1])
+    setZoom(s.zoom)
   }
 
   return (

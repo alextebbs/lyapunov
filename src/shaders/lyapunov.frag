@@ -24,6 +24,9 @@ uniform sampler2D uGradient;
 uniform float uLambdaMin;
 uniform float uLambdaMax;
 
+// Initial condition
+uniform float uX0;
+
 // Double emulation toggle
 uniform bool uUseDouble;
 
@@ -33,7 +36,7 @@ uniform bool uUseDouble;
  * Compute Lyapunov exponent at point (a, b) in parameter space.
  */
 float lyapunovExponent(float a, float b, int iterations) {
-  float x = 0.5;
+  float x = uX0;
   float lambda = 0.0;
 
   // Warm-up: iterate without accumulating to settle into attractor

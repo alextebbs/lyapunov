@@ -30,6 +30,8 @@ export interface RendererState {
   zoom: number
   sequence: number[] // 0 = A, 1 = B
   gradientStops: GradientStop[]
+  lambdaRange: [number, number] // [min, max] for exponent mapping
+  x0: number // initial condition for orbit
 }
 
 /** Double-float representation: [high, low] where value = high + low */
