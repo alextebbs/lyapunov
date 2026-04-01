@@ -149,6 +149,41 @@ const G = {
     { position: 0.9, color: [255, 255, 150] as [number, number, number] },
     { position: 1, color: [255, 255, 255] as [number, number, number] },
   ],
+  // Sharp two-tone gradients for tessellation patterns
+  sharpYellowBlack: [
+    { position: 0, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.48, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.50, color: [40, 30, 0] as [number, number, number] },
+    { position: 0.52, color: [255, 220, 0] as [number, number, number] },
+    { position: 1, color: [255, 240, 100] as [number, number, number] },
+  ],
+  sharpRedBlack: [
+    { position: 0, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.48, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.50, color: [40, 0, 0] as [number, number, number] },
+    { position: 0.52, color: [255, 30, 0] as [number, number, number] },
+    { position: 1, color: [255, 120, 60] as [number, number, number] },
+  ],
+  sharpGreenBlack: [
+    { position: 0, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.48, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.50, color: [0, 20, 0] as [number, number, number] },
+    { position: 0.52, color: [0, 255, 60] as [number, number, number] },
+    { position: 1, color: [140, 255, 140] as [number, number, number] },
+  ],
+  sharpCyanBlack: [
+    { position: 0, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.48, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.50, color: [0, 10, 20] as [number, number, number] },
+    { position: 0.52, color: [0, 200, 255] as [number, number, number] },
+    { position: 1, color: [150, 240, 255] as [number, number, number] },
+  ],
+  sharpWhiteBlack: [
+    { position: 0, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.48, color: [0, 0, 0] as [number, number, number] },
+    { position: 0.52, color: [255, 255, 255] as [number, number, number] },
+    { position: 1, color: [255, 255, 255] as [number, number, number] },
+  ],
 }
 
 // ── Scenes ───────────────────────────────────────────────────────────
@@ -473,6 +508,184 @@ export const SCENES: Scene[] = [
       center: [3.5, 3.5],
       zoom: 4.0,
       gradientStops: G.monochrome,
+    }),
+  },
+
+  // ─── Tessellation / Long sequence patterns ───
+  {
+    label: 'Tessellation I',
+    seq: 'AABBAABBAABBAABBAABBAABBAABBAABB',
+    state: scene({
+      sequence: seq('AABBAABBAABBAABBAABBAABBAABBAABB'),
+      center: [3.2, 3.2],
+      zoom: 1.5,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.1, 0.1],
+    }),
+  },
+  {
+    label: 'Tessellation II',
+    seq: 'ABBBABBBABBBABBBABBBABBBABBBABBB',
+    state: scene({
+      sequence: seq('ABBBABBBABBBABBBABBBABBBABBBABBB'),
+      center: [3.0, 3.0],
+      zoom: 1.2,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.15, 0.15],
+    }),
+  },
+  {
+    label: 'Tessellation III',
+    seq: 'AAABBBAAABBBAAABBBAAABBBAAABBBAAABBBAAABBBAAABBB',
+    state: scene({
+      sequence: seq('AAABBBAAABBBAAABBBAAABBBAAABBBAAABBBAAABBBAAABBB'),
+      center: [3.0, 3.0],
+      zoom: 1.2,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.1, 0.1],
+    }),
+  },
+  {
+    label: 'Gold Weave',
+    seq: 'ABBAABBAABBAABBAABBAABBAABBAABBAABBAABBAABBAABBA',
+    state: scene({
+      sequence: seq('ABBAABBAABBAABBAABBAABBAABBAABBAABBAABBAABBAABBA'),
+      center: [3.3, 3.3],
+      zoom: 1.8,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.08, 0.08],
+    }),
+  },
+  {
+    label: 'Red Lattice',
+    seq: 'AABBBAABBBAABBBAABBBAABBBAABBBAABBBAABBBAABBBAAB',
+    state: scene({
+      sequence: seq('AABBBAABBBAABBBAABBBAABBBAABBBAABBBAABBBAABBBAAB'),
+      center: [3.2, 3.0],
+      zoom: 1.5,
+      gradientStops: G.sharpRedBlack,
+      lambdaRange: [-0.1, 0.1],
+    }),
+  },
+  {
+    label: 'Green Circuit',
+    seq: 'ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB',
+    state: scene({
+      sequence: seq('ABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABABAB'),
+      center: [3.0, 3.0],
+      zoom: 1.0,
+      gradientStops: G.sharpGreenBlack,
+      lambdaRange: [-0.1, 0.1],
+    }),
+  },
+  {
+    label: 'Cyan Grid',
+    seq: 'AAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBB',
+    state: scene({
+      sequence: seq('AAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBB'),
+      center: [3.0, 3.0],
+      zoom: 1.2,
+      gradientStops: G.sharpCyanBlack,
+      lambdaRange: [-0.12, 0.12],
+    }),
+  },
+  {
+    label: 'Interference',
+    seq: 'AABABABBAABABABBAABABABBAABABABBAABABABBAABABABB',
+    state: scene({
+      sequence: seq('AABABABBAABABABBAABABABBAABABABBAABABABBAABABABB'),
+      center: [3.2, 3.2],
+      zoom: 1.5,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.08, 0.08],
+    }),
+  },
+  {
+    label: 'Moiré',
+    seq: 'ABBBBBABBBBBABBBBBABBBBBABBBBBABBBBBABBBBBABBBBB',
+    state: scene({
+      sequence: seq('ABBBBBABBBBBABBBBBABBBBBABBBBBABBBBBABBBBBABBBBB'),
+      center: [3.0, 2.8],
+      zoom: 1.3,
+      gradientStops: G.sharpWhiteBlack,
+      lambdaRange: [-0.1, 0.1],
+    }),
+  },
+  {
+    label: 'Fibonacci',
+    seq: 'ABAABABAABAABABAABABAABAABABAABAABABAABABAABAABAB',
+    state: scene({
+      sequence: seq('ABAABABAABAABABAABABAABAABABAABAABABAABABAABAABAB'),
+      center: [3.2, 3.0],
+      zoom: 1.4,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.1, 0.1],
+    }),
+  },
+  {
+    label: 'Cascade 64',
+    seq: 'AAAAAAAABBBBBBBBBBBBBBBBAAAAAAAABBBBBBBBBBBBBBBBAAAAAAAABBBBBBBBBB',
+    state: scene({
+      sequence: seq('AAAAAAAABBBBBBBBBBBBBBBBAAAAAAAABBBBBBBBBBBBBBBBAAAAAAAABBBBBBBBBB'),
+      center: [3.0, 3.0],
+      zoom: 1.0,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.15, 0.15],
+    }),
+  },
+  {
+    label: 'Zigzag',
+    seq: 'ABBABAABABBABAABABBABAABABBABAABABBABAABABBABAAB',
+    state: scene({
+      sequence: seq('ABBABAABABBABAABABBABAABABBABAABABBABAABABBABAAB'),
+      center: [3.3, 3.1],
+      zoom: 1.5,
+      gradientStops: G.sharpRedBlack,
+      lambdaRange: [-0.08, 0.08],
+    }),
+  },
+  {
+    label: 'Pulse',
+    seq: 'ABBBBBBBBBBBABBBBBBBBBBBABBBBBBBBBBBABBBBBBBBBBB',
+    state: scene({
+      sequence: seq('ABBBBBBBBBBBABBBBBBBBBBBABBBBBBBBBBBABBBBBBBBBBB'),
+      center: [3.0, 3.0],
+      zoom: 1.2,
+      gradientStops: G.sharpCyanBlack,
+      lambdaRange: [-0.12, 0.12],
+    }),
+  },
+  {
+    label: 'Diamond',
+    seq: 'AABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBBAA',
+    state: scene({
+      sequence: seq('AABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBBAAAABBBBAA'),
+      center: [3.2, 3.2],
+      zoom: 1.4,
+      gradientStops: G.sharpGreenBlack,
+      lambdaRange: [-0.1, 0.1],
+    }),
+  },
+  {
+    label: 'Woven Gold',
+    seq: 'AAABBAAABBAAABBAAABBAAABBAAABBAAABBAAABBAAABBAAA',
+    state: scene({
+      sequence: seq('AAABBAAABBAAABBAAABBAAABBAAABBAAABBAAABBAAABBAAA'),
+      center: [3.4, 3.0],
+      zoom: 1.6,
+      gradientStops: G.sharpYellowBlack,
+      lambdaRange: [-0.06, 0.06],
+    }),
+  },
+  {
+    label: 'Storm',
+    seq: 'ABBABBABBABBABBABBABBABBABBABBABBABBABBABBABBABB',
+    state: scene({
+      sequence: seq('ABBABBABBABBABBABBABBABBABBABBABBABBABBABBABBABB'),
+      center: [3.2, 3.0],
+      zoom: 1.3,
+      gradientStops: G.sharpWhiteBlack,
+      lambdaRange: [-0.1, 0.1],
     }),
   },
 ]
