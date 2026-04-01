@@ -7,6 +7,7 @@ import { useAppState } from '../state/context'
 
 export function Toolbar() {
   const [open, setOpen] = useState(false)
+  const [showAdvanced, setShowAdvanced] = useState(false)
   const { center, zoom } = useAppState()
 
   return (
@@ -26,18 +27,35 @@ export function Toolbar() {
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-4 pt-14 space-y-6 overflow-y-auto h-full">
+        <div className="p-4 pt-14 space-y-4 overflow-y-auto h-full pb-20">
           {/* Title */}
           <div>
             <h1 className="text-sm font-semibold text-white">Lyapunov Explorer</h1>
             <p className="text-xs text-white/40 mt-1 font-mono">
-              ({center[0].toFixed(6)}, {center[1].toFixed(6)}) z:{zoom.toFixed(2)}
+              ({center[0].toFixed(4)}, {center[1].toFixed(4)}) z:{zoom.toFixed(1)}
             </p>
           </div>
 
+          {/* Presets - the main attraction */}
           <ScenePresets />
-          <SequenceEditor />
-          <GradientEditor />
+
+          {/* Advanced toggle */}
+          <button
+            onClick={() => setShowAdvanced(!showAdvanced)}
+            className="w-full text-left text-xs text-white/40 hover:text-white/60 transition-colors flex items-center gap-1"
+          >
+            <span className={`inline-block transition-transform ${showAdvanced ? 'rotate-90' : ''}`}>
+              {'\u25B6'}
+            </span>
+            Advanced Controls
+          </button>
+
+          {showAdvanced && (
+            <div className="space-y-6">
+              <SequenceEditor />
+              <GradientEditor />
+            </div>
+          )}
 
           <div className="border-t border-white/10 pt-4">
             <ShareButton />
