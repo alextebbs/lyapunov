@@ -59,6 +59,9 @@ export class LyapunovRenderer {
   private lambdaMin = -0.5
   private lambdaMax = 0.5
   private _x0 = 0.5
+  private _mapFunction = 0
+  private _exponent = 1.0
+  private _cValue = 3.0
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas
@@ -70,7 +73,8 @@ export class LyapunovRenderer {
       'uCenterHigh', 'uCenterLow', 'uZoom', 'uResolution',
       'uTileOffset', 'uTileSize',
       'uSequence', 'uSequenceLength', 'uIterations',
-      'uGradient', 'uLambdaMin', 'uLambdaMax', 'uX0', 'uUseDouble',
+      'uGradient', 'uLambdaMin', 'uLambdaMax', 'uX0',
+      'uMapFunction', 'uExponent', 'uCValue', 'uUseDouble',
     ])
 
     this.compositeProgram = createProgram(this.gl, COMPOSITE_VERT, COMPOSITE_FRAG)
@@ -99,6 +103,9 @@ export class LyapunovRenderer {
       })),
       lambdaRange: [this.lambdaMin, this.lambdaMax],
       x0: this._x0,
+      mapFunction: this._mapFunction,
+      exponent: this._exponent,
+      cValue: this._cValue,
     }
   }
 
@@ -141,6 +148,24 @@ export class LyapunovRenderer {
     this.tileCache.invalidateAll()
   }
 
+  setMapFunction(fn: number) {
+    this._mapFunction = fn
+    this.viewChanged()
+    this.tileCache.invalidateAll()
+  }
+
+  setExponent(exp: number) {
+    this._exponent = exp
+    this.viewChanged()
+    this.tileCache.invalidateAll()
+  }
+
+  setCValue(c: number) {
+    this._cValue = c
+    this.viewChanged()
+    this.tileCache.invalidateAll()
+  }
+
   setState(state: Partial<RendererState>) {
     if (state.center) this._center = state.center
     if (state.zoom !== undefined) {
@@ -159,6 +184,15 @@ export class LyapunovRenderer {
     }
     if (state.x0 !== undefined) {
       this._x0 = state.x0
+    }
+    if (state.mapFunction !== undefined) {
+      this._mapFunction = state.mapFunction
+    }
+    if (state.exponent !== undefined) {
+      this._exponent = state.exponent
+    }
+    if (state.cValue !== undefined) {
+      this._cValue = state.cValue
     }
     this.viewChanged()
     this.tileCache.invalidateAll()
@@ -358,6 +392,9 @@ export class LyapunovRenderer {
     gl.uniform1f(this.uniforms.uLambdaMin!, this.lambdaMin)
     gl.uniform1f(this.uniforms.uLambdaMax!, this.lambdaMax)
     gl.uniform1f(this.uniforms.uX0!, this._x0)
+    gl.uniform1i(this.uniforms.uMapFunction!, this._mapFunction)
+    gl.uniform1f(this.uniforms.uExponent!, this._exponent)
+    gl.uniform1f(this.uniforms.uCValue!, this._cValue)
 
     gl.uniform1i(this.uniforms.uUseDouble as WebGLUniformLocation, useDouble ? 1 : 0)
   }

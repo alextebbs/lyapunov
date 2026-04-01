@@ -17,18 +17,21 @@ const DEFAULT_STATE: RendererState = {
   ],
   lambdaRange: [-0.5, 0.5],
   x0: 0.5,
+  mapFunction: 0,
+  exponent: 1.0,
+  cValue: 3.0,
 }
 
 function sequenceToString(seq: number[]): string {
-  return seq.map(v => (v === 0 ? 'A' : 'B')).join('')
+  return seq.map(v => v === 0 ? 'A' : v === 1 ? 'B' : 'C').join('')
 }
 
 function stringToSequence(s: string): number[] {
   return s
     .toUpperCase()
     .split('')
-    .filter(c => c === 'A' || c === 'B')
-    .map(c => (c === 'A' ? 0 : 1))
+    .filter(c => c === 'A' || c === 'B' || c === 'C')
+    .map(c => c === 'A' ? 0 : c === 'B' ? 1 : 2)
 }
 
 function colorToHex(c: [number, number, number]): string {
@@ -78,6 +81,15 @@ export function serializeState(state: RendererState): string {
   if (state.x0 !== 0.5) {
     params.set('x0', state.x0.toFixed(4))
   }
+  if (state.mapFunction !== 0) {
+    params.set('mf', String(state.mapFunction))
+  }
+  if (state.exponent !== 1.0) {
+    params.set('exp', state.exponent.toFixed(2))
+  }
+  if (state.cValue !== 3.0) {
+    params.set('cv', state.cValue.toFixed(3))
+  }
   return '#' + params.toString()
 }
 
@@ -93,6 +105,9 @@ export function deserializeState(hash: string): RendererState {
     const grad = params.get('g') ? decodeGradient(params.get('g')!) : undefined
     const lr = params.get('lr')?.split(',').map(Number) as [number, number] | undefined
     const x0 = params.get('x0') ? parseFloat(params.get('x0')!) : undefined
+    const mf = params.get('mf') ? parseInt(params.get('mf')!) : undefined
+    const exp = params.get('exp') ? parseFloat(params.get('exp')!) : undefined
+    const cv = params.get('cv') ? parseFloat(params.get('cv')!) : undefined
 
     return {
       center: center && center.length === 2 && center.every(isFinite) ? center : DEFAULT_STATE.center,
@@ -101,6 +116,9 @@ export function deserializeState(hash: string): RendererState {
       gradientStops: grad ?? DEFAULT_STATE.gradientStops,
       lambdaRange: lr && lr.length === 2 && lr.every(isFinite) ? lr : DEFAULT_STATE.lambdaRange,
       x0: x0 && isFinite(x0) && x0 > 0 && x0 < 1 ? x0 : DEFAULT_STATE.x0,
+      mapFunction: mf !== undefined && mf >= 0 && mf <= 3 ? mf : DEFAULT_STATE.mapFunction,
+      exponent: exp && isFinite(exp) && exp > 0 ? exp : DEFAULT_STATE.exponent,
+      cValue: cv && isFinite(cv) ? cv : DEFAULT_STATE.cValue,
     }
   } catch {
     return { ...DEFAULT_STATE }

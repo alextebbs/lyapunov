@@ -4,12 +4,15 @@ import type { RendererState } from '../renderer/types'
 // Helper: convert "ABBAAB" string to number array
 const seq = (s: string) => s.split('').map(c => (c === 'A' ? 0 : 1))
 
-// Helper: build a full RendererState with defaults for new fields
-function scene(partial: Omit<RendererState, 'lambdaRange' | 'x0'> & { lambdaRange?: [number, number]; x0?: number }): RendererState {
+// Helper: build a full RendererState with defaults for optional fields
+function scene(partial: Pick<RendererState, 'sequence' | 'center' | 'zoom' | 'gradientStops'> & Partial<RendererState>): RendererState {
   return {
+    lambdaRange: [-0.5, 0.5],
+    x0: 0.5,
+    mapFunction: 0,
+    exponent: 1.0,
+    cValue: 3.0,
     ...partial,
-    lambdaRange: partial.lambdaRange ?? [-0.5, 0.5],
-    x0: partial.x0 ?? 0.5,
   }
 }
 
@@ -684,7 +687,10 @@ export const SCENES: Scene[] = [
 ]
 
 export function ScenePresets() {
-  const { setCenter, setZoom, setSequence, setGradientStops, setLambdaRange, setX0, rendererRef } = useAppState()
+  const {
+    setCenter, setZoom, setSequence, setGradientStops,
+    setLambdaRange, setX0, setMapFunction, setExponent, setCValue, rendererRef,
+  } = useAppState()
 
   const applyScene = (s: RendererState) => {
     rendererRef.current?.setState(s)
@@ -692,6 +698,9 @@ export function ScenePresets() {
     setGradientStops(s.gradientStops)
     setLambdaRange(s.lambdaRange)
     setX0(s.x0)
+    setMapFunction(s.mapFunction)
+    setExponent(s.exponent)
+    setCValue(s.cValue)
     setCenter(s.center[0], s.center[1])
     setZoom(s.zoom)
   }

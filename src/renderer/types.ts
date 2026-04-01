@@ -28,10 +28,13 @@ export interface Tile {
 export interface RendererState {
   center: [number, number]
   zoom: number
-  sequence: number[] // 0 = A, 1 = B
+  sequence: number[] // 0 = A, 1 = B, 2 = C
   gradientStops: GradientStop[]
   lambdaRange: [number, number] // [min, max] for exponent mapping
   x0: number // initial condition for orbit
+  mapFunction: number // 0=logistic, 1=sine, 2=cubic, 3=gaussian
+  exponent: number // generalized map exponent (1.0 = standard)
+  cValue: number // r-value for third sequence symbol C
 }
 
 /** Double-float representation: [high, low] where value = high + low */

@@ -10,7 +10,21 @@ const PRESETS = [
   { label: 'BBBBBBAAAAAA', value: 'BBBBBBAAAAAA' },
   { label: 'AAABBBAAABBB', value: 'AAABBBAAABBB' },
   { label: 'AABBAABB', value: 'AABBAABB' },
+  { label: 'ABCABC', value: 'ABCABC' },
+  { label: 'AABCBC', value: 'AABCBC' },
 ]
+
+const CHAR_COLORS: Record<string, string> = {
+  A: 'bg-blue-500/80',
+  B: 'bg-amber-500/80',
+  C: 'bg-emerald-500/80',
+}
+
+function nextChar(c: string): string {
+  if (c === 'A') return 'B'
+  if (c === 'B') return 'C'
+  return 'A'
+}
 
 export function SequenceEditor() {
   const { sequence, setSequence } = useAppState()
@@ -18,7 +32,7 @@ export function SequenceEditor() {
 
   const handleChange = useCallback(
     (value: string) => {
-      const cleaned = value.toUpperCase().replace(/[^AB]/g, '')
+      const cleaned = value.toUpperCase().replace(/[^ABC]/g, '')
       setInputValue(cleaned)
       if (cleaned.length > 0) {
         setSequence(displayStringToSequence(cleaned))
@@ -46,7 +60,7 @@ export function SequenceEditor() {
         value={inputValue}
         onChange={e => handleChange(e.target.value)}
         className="w-full bg-white/10 border border-white/20 rounded px-2 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-white/40"
-        placeholder="e.g. AABAB"
+        placeholder="e.g. AABAB or ABCABC"
       />
 
       {/* Visual sequence blocks */}
@@ -56,14 +70,12 @@ export function SequenceEditor() {
             key={i}
             onClick={() => {
               const arr = inputValue.split('')
-              arr[i] = arr[i] === 'A' ? 'B' : 'A'
+              arr[i] = nextChar(arr[i]!)
               handleChange(arr.join(''))
             }}
             className={`w-6 h-6 rounded text-xs font-bold flex items-center justify-center transition-colors ${
-              char === 'A'
-                ? 'bg-blue-500/80 text-white'
-                : 'bg-amber-500/80 text-white'
-            }`}
+              CHAR_COLORS[char] ?? 'bg-white/20'
+            } text-white`}
           >
             {char}
           </button>

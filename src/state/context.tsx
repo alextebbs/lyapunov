@@ -10,6 +10,9 @@ interface AppState extends RendererState {
   setGradientStops: (stops: GradientStop[]) => void
   setLambdaRange: (range: [number, number]) => void
   setX0: (x0: number) => void
+  setMapFunction: (fn: number) => void
+  setExponent: (exp: number) => void
+  setCValue: (c: number) => void
   rendererRef: React.MutableRefObject<LyapunovRenderer | null>
 }
 
@@ -19,7 +22,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const rendererRef = useRef<LyapunovRenderer | null>(null)
   const urlUpdateTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Initialize from URL
   const initial = deserializeState(window.location.hash)
   const [center, setCenterState] = useState<[number, number]>(initial.center)
   const [zoom, setZoomState] = useState(initial.zoom)
@@ -27,10 +29,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [gradientStops, setGradientStopsState] = useState(initial.gradientStops)
   const [lambdaRange, setLambdaRangeState] = useState<[number, number]>(initial.lambdaRange)
   const [x0, setX0State] = useState(initial.x0)
+  const [mapFunction, setMapFunctionState] = useState(initial.mapFunction)
+  const [exponent, setExponentState] = useState(initial.exponent)
+  const [cValue, setCValueState] = useState(initial.cValue)
 
   const getFullState = useCallback((): RendererState => ({
-    center, zoom, sequence, gradientStops, lambdaRange, x0,
-  }), [center, zoom, sequence, gradientStops, lambdaRange, x0])
+    center, zoom, sequence, gradientStops, lambdaRange, x0, mapFunction, exponent, cValue,
+  }), [center, zoom, sequence, gradientStops, lambdaRange, x0, mapFunction, exponent, cValue])
 
   const updateUrl = useCallback((state: RendererState) => {
     if (urlUpdateTimer.current) clearTimeout(urlUpdateTimer.current)
@@ -76,7 +81,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     updateUrl({ ...getFullState(), x0: val })
   }, [getFullState, updateUrl])
 
-  // Listen for renderer state changes (from direct interaction like panning)
+  const setMapFunction = useCallback((fn: number) => {
+    setMapFunctionState(fn)
+    rendererRef.current?.setMapFunction(fn)
+    updateUrl({ ...getFullState(), mapFunction: fn })
+  }, [getFullState, updateUrl])
+
+  const setExponent = useCallback((exp: number) => {
+    setExponentState(exp)
+    rendererRef.current?.setExponent(exp)
+    updateUrl({ ...getFullState(), exponent: exp })
+  }, [getFullState, updateUrl])
+
+  const setCValue = useCallback((c: number) => {
+    setCValueState(c)
+    rendererRef.current?.setCValue(c)
+    updateUrl({ ...getFullState(), cValue: c })
+  }, [getFullState, updateUrl])
+
   useEffect(() => {
     const renderer = rendererRef.current
     if (!renderer) return
@@ -87,7 +109,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     })
   }, [updateUrl])
 
-  // Listen for hash changes (back/forward navigation)
   useEffect(() => {
     const handler = () => {
       const state = deserializeState(window.location.hash)
@@ -97,6 +118,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setGradientStopsState(state.gradientStops)
       setLambdaRangeState(state.lambdaRange)
       setX0State(state.x0)
+      setMapFunctionState(state.mapFunction)
+      setExponentState(state.exponent)
+      setCValueState(state.cValue)
       rendererRef.current?.setState(state)
     }
     window.addEventListener('hashchange', handler)
@@ -106,18 +130,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider
       value={{
-        center,
-        zoom,
-        sequence,
-        gradientStops,
-        lambdaRange,
-        x0,
-        setCenter,
-        setZoom,
-        setSequence,
-        setGradientStops,
-        setLambdaRange,
-        setX0,
+        center, zoom, sequence, gradientStops, lambdaRange, x0,
+        mapFunction, exponent, cValue,
+        setCenter, setZoom, setSequence, setGradientStops, setLambdaRange, setX0,
+        setMapFunction, setExponent, setCValue,
         rendererRef,
       }}
     >
