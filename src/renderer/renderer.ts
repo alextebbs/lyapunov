@@ -25,9 +25,9 @@ export class LyapunovRenderer {
   private compositeUniforms: ReturnType<typeof getUniformLocations>
 
   // State
-  private _center: [number, number] = [2.5, 3.5]
-  private _zoom = 1
-  private _sequence: number[] = [0, 1, 1, 0] // ABBA
+  private _center: [number, number] = [3.7, 2.95]
+  private _zoom = 5.5
+  private _sequence: number[] = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0] // BBBBBBAAAAAA
   private _gradientStops: GradientStop[] = [
     { position: 0, color: [0, 0, 40] },
     { position: 0.35, color: [0, 80, 200] },
@@ -40,8 +40,8 @@ export class LyapunovRenderer {
   private isDragging = false
   private lastPointer: [number, number] = [0, 0]
   private velocity: [number, number] = [0, 0]
-  private targetZoom = 1
-  private animatedZoom = 1
+  private targetZoom = 5.5
+  private animatedZoom = 5.5
 
   // Multi-touch state
   private isPinching = false
