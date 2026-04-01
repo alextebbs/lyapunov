@@ -20,4 +20,4 @@ export function splitDouble(value: number): DoublePair {
  * Threshold zoom level beyond which we switch to double-float emulation.
  * At zoom ~1e5, single float32 precision starts showing artifacts.
  */
-export const DOUBLE_EMULATION_THRESHOLD = 1e5
+export const DOUBLE_EMULATION_THRESHOLD = 1e4
