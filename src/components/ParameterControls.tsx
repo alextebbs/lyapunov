@@ -25,23 +25,23 @@ export function ParameterControls() {
   const hasC = sequence.includes(2)
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <label className="text-xs font-medium text-white/60 uppercase tracking-wider">
         Parameters
       </label>
 
       {/* Map function selector */}
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <label className="text-xs text-white/60">Map Function</label>
-        <div className="flex gap-1 flex-wrap">
+        <div className="flex gap-1.5 flex-wrap">
           {MAP_FUNCTIONS.map(mf => (
             <button
               key={mf.value}
               onClick={() => setMapFunction(mf.value)}
-              className={`px-2 py-0.5 rounded text-xs transition-colors ${
+              className={`px-3 py-1.5 rounded text-xs transition-colors ${
                 mapFunction === mf.value
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white/5 text-white/40 hover:bg-white/10'
+                  ? 'bg-white/25 text-white'
+                  : 'bg-white/5 text-white/40 hover:bg-white/10 active:bg-white/15'
               }`}
             >
               {mf.label}
@@ -50,16 +50,15 @@ export function ParameterControls() {
         </div>
       </div>
 
-      {/* Exponent (only meaningful for logistic) */}
       {mapFunction === 0 && (
         <ParameterSlider
           label="Exponent"
           value={exponent}
           min={0.5}
           max={3.0}
-          step={0.05}
           defaultValue={1.0}
           onChange={setExponent}
+          precision={2}
         />
       )}
 
@@ -68,31 +67,27 @@ export function ParameterControls() {
         value={x0}
         min={0.01}
         max={0.99}
-        step={0.01}
         defaultValue={0.5}
         onChange={setX0}
       />
 
-      {/* C value (only show if sequence contains C) */}
       {hasC && (
         <ParameterSlider
           label="C Value (r)"
           value={cValue}
           min={0}
           max={4}
-          step={0.01}
           defaultValue={3.0}
           onChange={setCValue}
         />
       )}
 
-      <div className="space-y-1">
+      <div className="space-y-2">
         <ParameterSlider
           label="Lambda Min"
           value={lambdaRange[0]}
           min={-3}
           max={0}
-          step={0.05}
           defaultValue={-0.5}
           onChange={v => setLambdaRange([v, lambdaRange[1]])}
         />
@@ -101,19 +96,18 @@ export function ParameterControls() {
           value={lambdaRange[1]}
           min={0}
           max={3}
-          step={0.05}
           defaultValue={0.5}
           onChange={v => setLambdaRange([lambdaRange[0], v])}
         />
-        <div className="flex gap-1 flex-wrap pt-1">
+        <div className="flex gap-1.5 flex-wrap pt-1">
           {LAMBDA_PRESETS.map(p => (
             <button
               key={p.label}
               onClick={() => setLambdaRange(p.range)}
-              className={`px-1.5 py-0.5 rounded text-[10px] transition-colors ${
+              className={`px-2.5 py-1 rounded text-xs transition-colors ${
                 lambdaRange[0] === p.range[0] && lambdaRange[1] === p.range[1]
-                  ? 'bg-white/20 text-white'
-                  : 'bg-white/5 text-white/40 hover:bg-white/10'
+                  ? 'bg-white/25 text-white'
+                  : 'bg-white/5 text-white/40 hover:bg-white/10 active:bg-white/15'
               }`}
             >
               {p.label}

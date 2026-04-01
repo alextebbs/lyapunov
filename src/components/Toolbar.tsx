@@ -13,22 +13,22 @@ export function Toolbar() {
 
   return (
     <>
-      {/* Toggle button */}
+      {/* Toggle button — larger touch target on mobile */}
       <button
         onClick={() => setOpen(!open)}
-        className="absolute top-3 right-3 z-20 w-8 h-8 rounded bg-black/50 backdrop-blur border border-white/20 text-white/80 hover:bg-black/70 flex items-center justify-center text-sm transition-colors"
+        className="absolute top-3 right-3 z-20 w-10 h-10 sm:w-8 sm:h-8 rounded-lg sm:rounded bg-black/50 backdrop-blur border border-white/20 text-white/80 hover:bg-black/70 active:bg-black/80 flex items-center justify-center text-base sm:text-sm transition-colors"
         title={open ? 'Hide controls' : 'Show controls'}
       >
         {open ? '\u2715' : '\u2699'}
       </button>
 
-      {/* Panel */}
+      {/* Panel — full width on small screens */}
       <div
-        className={`absolute top-0 right-0 z-10 h-full w-72 bg-black/70 backdrop-blur-lg border-l border-white/10 transform transition-transform duration-200 ${
+        className={`absolute top-0 right-0 z-10 h-full w-full sm:w-80 bg-black/80 sm:bg-black/70 backdrop-blur-lg border-l border-white/10 transform transition-transform duration-200 ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="p-4 pt-14 space-y-4 overflow-y-auto h-full pb-20">
+        <div className="p-4 pt-16 space-y-5 overflow-y-auto h-full pb-24">
           {/* Title */}
           <div>
             <h1 className="text-sm font-semibold text-white">Lyapunov Explorer</h1>
@@ -46,7 +46,7 @@ export function Toolbar() {
           {/* Advanced toggle */}
           <button
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="w-full text-left text-xs text-white/40 hover:text-white/60 transition-colors flex items-center gap-1"
+            className="w-full text-left text-xs text-white/40 hover:text-white/60 active:text-white/80 transition-colors flex items-center gap-1.5 py-1"
           >
             <span className={`inline-block transition-transform ${showAdvanced ? 'rotate-90' : ''}`}>
               {'\u25B6'}
