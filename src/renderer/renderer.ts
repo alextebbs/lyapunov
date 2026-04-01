@@ -29,11 +29,13 @@ export class LyapunovRenderer {
   private _zoom = 5.5
   private _sequence: number[] = [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0] // BBBBBBAAAAAA
   private _gradientStops: GradientStop[] = [
-    { position: 0, color: [0, 0, 40] },
-    { position: 0.35, color: [0, 80, 200] },
-    { position: 0.5, color: [255, 255, 255] },
-    { position: 0.65, color: [255, 200, 0] },
-    { position: 1, color: [128, 0, 0] },
+    { position: 0, color: [10, 5, 0] },
+    { position: 0.35, color: [200, 170, 0] },
+    { position: 0.48, color: [255, 220, 50] },
+    { position: 0.5, color: [0, 0, 0] },
+    { position: 0.52, color: [0, 20, 80] },
+    { position: 0.65, color: [0, 50, 180] },
+    { position: 1, color: [0, 0, 60] },
   ]
 
   // Interaction state
@@ -54,8 +56,8 @@ export class LyapunovRenderer {
   private interactionTimeout: ReturnType<typeof setTimeout> | null = null
   private needsRecompute = true
   private tilesValid = false // whether tiles match current view
-  private lambdaMin = -2
-  private lambdaMax = 2
+  private lambdaMin = -0.5
+  private lambdaMax = 0.5
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas

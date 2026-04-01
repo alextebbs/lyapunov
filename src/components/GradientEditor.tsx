@@ -5,13 +5,15 @@ import type { GradientStop } from '../renderer/types'
 
 const PRESETS: { label: string; stops: GradientStop[] }[] = [
   {
-    label: 'Classic',
+    label: 'Zircon Zity',
     stops: [
-      { position: 0, color: [0, 0, 40] },
-      { position: 0.35, color: [0, 80, 200] },
-      { position: 0.5, color: [255, 255, 255] },
-      { position: 0.65, color: [255, 200, 0] },
-      { position: 1, color: [128, 0, 0] },
+      { position: 0, color: [10, 5, 0] },
+      { position: 0.35, color: [200, 170, 0] },
+      { position: 0.48, color: [255, 220, 50] },
+      { position: 0.5, color: [0, 0, 0] },
+      { position: 0.52, color: [0, 20, 80] },
+      { position: 0.65, color: [0, 50, 180] },
+      { position: 1, color: [0, 0, 60] },
     ],
   },
   {
