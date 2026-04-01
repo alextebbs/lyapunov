@@ -40,6 +40,13 @@ export class LyapunovRenderer {
   private velocity: [number, number] = [0, 0]
   private targetZoom = 1
   private animatedZoom = 1
+
+  // Multi-touch state
+  private activePointers = new Map<number, { x: number; y: number }>()
+  private isPinching = false
+  private lastPinchDist = 0
+  private lastPinchCenter: [number, number] = [0, 0]
+
   // Rendering state
   private settled = false
   private interacting = false
@@ -326,11 +333,30 @@ export class LyapunovRenderer {
   // -- Event Handling --
 
   private addEventListeners() {
+    // Pointer events for mouse + single-touch pan
     this.canvas.addEventListener('pointerdown', this.onPointerDown)
     this.canvas.addEventListener('pointermove', this.onPointerMove)
     this.canvas.addEventListener('pointerup', this.onPointerUp)
     this.canvas.addEventListener('pointercancel', this.onPointerUp)
+
+    // Touch events for multi-touch pinch-to-zoom
+    // We use touch events alongside pointer events because pointer events
+    // don't give us multi-touch distance in a single event.
+    this.canvas.addEventListener('touchstart', this.onTouchStart, { passive: false })
+    this.canvas.addEventListener('touchmove', this.onTouchMove, { passive: false })
+    this.canvas.addEventListener('touchend', this.onTouchEnd, { passive: false })
+    this.canvas.addEventListener('touchcancel', this.onTouchEnd, { passive: false })
+
+    // Mouse wheel zoom (desktop)
     this.canvas.addEventListener('wheel', this.onWheel, { passive: false })
+
+    // Prevent all default gesture behaviors on the canvas
+    this.canvas.addEventListener('gesturestart', preventDefault, { passive: false })
+    this.canvas.addEventListener('gesturechange', preventDefault, { passive: false })
+    this.canvas.addEventListener('gestureend', preventDefault, { passive: false })
+
+    // Prevent pull-to-refresh and overscroll globally
+    document.addEventListener('touchmove', preventDefaultIfCanvas, { passive: false })
 
     // Keyboard navigation
     window.addEventListener('keydown', this.onKeyDown)
@@ -341,68 +367,171 @@ export class LyapunovRenderer {
     this.canvas.removeEventListener('pointermove', this.onPointerMove)
     this.canvas.removeEventListener('pointerup', this.onPointerUp)
     this.canvas.removeEventListener('pointercancel', this.onPointerUp)
+    this.canvas.removeEventListener('touchstart', this.onTouchStart)
+    this.canvas.removeEventListener('touchmove', this.onTouchMove)
+    this.canvas.removeEventListener('touchend', this.onTouchEnd)
+    this.canvas.removeEventListener('touchcancel', this.onTouchEnd)
     this.canvas.removeEventListener('wheel', this.onWheel)
+    this.canvas.removeEventListener('gesturestart', preventDefault)
+    this.canvas.removeEventListener('gesturechange', preventDefault)
+    this.canvas.removeEventListener('gestureend', preventDefault)
+    document.removeEventListener('touchmove', preventDefaultIfCanvas)
     window.removeEventListener('keydown', this.onKeyDown)
   }
 
+  // -- Pointer events (mouse + single-finger fallback) --
+
   private onPointerDown = (e: PointerEvent) => {
-    this.isDragging = true
-    this.lastPointer = [e.clientX, e.clientY]
-    this.velocity = [0, 0]
-    this.canvas.setPointerCapture(e.pointerId)
+    // Track all active pointers
+    this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    // Only use pointer events for single-touch pan (not during pinch)
+    if (this.activePointers.size === 1 && !this.isPinching) {
+      this.isDragging = true
+      this.lastPointer = [e.clientX, e.clientY]
+      this.velocity = [0, 0]
+      this.canvas.setPointerCapture(e.pointerId)
+    }
+
     this.markInteracting()
   }
 
   private onPointerMove = (e: PointerEvent) => {
-    if (!this.isDragging) return
+    this.activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+    // Skip pointer-based panning during pinch (touch events handle it)
+    if (this.isPinching || !this.isDragging) return
+    if (this.activePointers.size > 1) return
 
     const dx = e.clientX - this.lastPointer[0]
     const dy = e.clientY - this.lastPointer[1]
 
-    // Track velocity for momentum
     this.velocity = [dx, dy]
+    this.panBy(dx, dy)
+    this.lastPointer = [e.clientX, e.clientY]
+  }
 
-    // Convert pixel delta to fractal space delta
+  private onPointerUp = (e: PointerEvent) => {
+    this.activePointers.delete(e.pointerId)
+
+    if (this.activePointers.size === 0) {
+      this.isDragging = false
+      this.isPinching = false
+      this.markInteractionEnd()
+    } else if (this.activePointers.size === 1) {
+      // Transition from pinch back to single-finger pan
+      this.isPinching = false
+      this.isDragging = true
+      const remaining = this.activePointers.values().next().value!
+      this.lastPointer = [remaining.x, remaining.y]
+      this.velocity = [0, 0]
+    }
+  }
+
+  // -- Touch events (multi-touch pinch-to-zoom + pan) --
+
+  private onTouchStart = (e: TouchEvent) => {
+    e.preventDefault()
+
+    if (e.touches.length === 2) {
+      // Start pinch
+      this.isPinching = true
+      this.isDragging = false
+      this.velocity = [0, 0]
+
+      const [t0, t1] = [e.touches[0]!, e.touches[1]!]
+      this.lastPinchDist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY)
+      this.lastPinchCenter = [
+        (t0.clientX + t1.clientX) / 2,
+        (t0.clientY + t1.clientY) / 2,
+      ]
+    }
+  }
+
+  private onTouchMove = (e: TouchEvent) => {
+    e.preventDefault()
+
+    if (e.touches.length === 2 && this.isPinching) {
+      const [t0, t1] = [e.touches[0]!, e.touches[1]!]
+
+      // Current pinch distance and center
+      const dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY)
+      const centerX = (t0.clientX + t1.clientX) / 2
+      const centerY = (t0.clientY + t1.clientY) / 2
+
+      // Pinch-to-zoom: zoom around the midpoint between fingers
+      if (this.lastPinchDist > 0) {
+        const scale = dist / this.lastPinchDist
+        this.zoomAt(centerX, centerY, scale)
+      }
+
+      // Two-finger pan: move center based on midpoint delta
+      const dx = centerX - this.lastPinchCenter[0]
+      const dy = centerY - this.lastPinchCenter[1]
+      if (Math.abs(dx) > 0.5 || Math.abs(dy) > 0.5) {
+        this.panBy(dx, dy)
+      }
+
+      this.lastPinchDist = dist
+      this.lastPinchCenter = [centerX, centerY]
+      this.markInteracting()
+    }
+  }
+
+  private onTouchEnd = (e: TouchEvent) => {
+    e.preventDefault()
+
+    if (e.touches.length < 2) {
+      this.isPinching = false
+      this.lastPinchDist = 0
+    }
+
+    if (e.touches.length === 1) {
+      // Transition to single-finger pan
+      this.isDragging = true
+      this.lastPointer = [e.touches[0]!.clientX, e.touches[0]!.clientY]
+      this.velocity = [0, 0]
+    }
+
+    if (e.touches.length === 0) {
+      this.isDragging = false
+      this.isPinching = false
+      this.markInteractionEnd()
+    }
+  }
+
+  // -- Shared pan/zoom helpers --
+
+  private panBy(dx: number, dy: number) {
     const viewWidth = 4 / this._zoom
     const fractalDx = (dx / this.canvas.clientWidth) * viewWidth
     const fractalDy = (dy / this.canvas.clientHeight) * (viewWidth * this.canvas.height / this.canvas.width)
 
     this._center[0] -= fractalDx
-    this._center[1] += fractalDy // Y is flipped
+    this._center[1] += fractalDy
 
-    this.lastPointer = [e.clientX, e.clientY]
     this.needsRecompute = true
     this.tileCache.markAllDirty()
     this.notifyStateChange()
     this.markInteracting()
   }
 
-  private onPointerUp = (_e: PointerEvent) => {
-    this.isDragging = false
-    this.markInteractionEnd()
-  }
-
-  private onWheel = (e: WheelEvent) => {
-    e.preventDefault()
-
-    // Zoom toward cursor position
+  private zoomAt(clientX: number, clientY: number, scaleFactor: number) {
     const rect = this.canvas.getBoundingClientRect()
-    const cursorX = (e.clientX - rect.left) / rect.width
-    const cursorY = 1 - (e.clientY - rect.top) / rect.height // flip Y
+    const cursorX = (clientX - rect.left) / rect.width
+    const cursorY = 1 - (clientY - rect.top) / rect.height
 
     const viewWidth = 4 / this._zoom
     const aspect = this.canvas.width / this.canvas.height
     const viewHeight = viewWidth / aspect
 
-    // Fractal coordinates under cursor before zoom
+    // Fractal coordinates under the zoom focal point
     const fracX = this._center[0] + (cursorX - 0.5) * viewWidth
     const fracY = this._center[1] + (cursorY - 0.5) * viewHeight
 
-    // Apply zoom
-    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1
-    this.targetZoom *= zoomDelta
+    this.targetZoom *= scaleFactor
 
-    // Adjust center so cursor stays at same fractal coordinate
+    // Adjust center so focal point stays fixed
     const newViewWidth = 4 / this.targetZoom
     const newViewHeight = newViewWidth / aspect
     this._center[0] = fracX - (cursorX - 0.5) * newViewWidth
@@ -411,12 +540,21 @@ export class LyapunovRenderer {
     this.needsRecompute = true
     this.tileCache.markAllDirty()
     this.notifyStateChange()
+  }
+
+  // -- Mouse wheel (desktop) --
+
+  private onWheel = (e: WheelEvent) => {
+    e.preventDefault()
+    const zoomDelta = e.deltaY > 0 ? 0.9 : 1.1
+    this.zoomAt(e.clientX, e.clientY, zoomDelta)
     this.markInteracting()
     this.markInteractionEnd()
   }
 
+  // -- Keyboard --
+
   private onKeyDown = (e: KeyboardEvent) => {
-    // Don't capture if typing in an input
     if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
 
     const panAmount = 0.1 / this._zoom * 4
@@ -464,7 +602,6 @@ export class LyapunovRenderer {
     this.interactionTimeout = setTimeout(() => {
       this.interacting = false
       this.settled = false
-      // Reset all tiles to allow full refinement
       for (const tile of this.tileCache.all()) {
         if (tile.pass < PASS_ITERATIONS.length) {
           tile.dirty = true
@@ -483,6 +620,19 @@ export class LyapunovRenderer {
     this.gl.deleteBuffer(this.quad.vbo)
     this.gl.deleteVertexArray(this.quad.vao)
     this.gl.getExtension('WEBGL_lose_context')?.loseContext()
+  }
+}
+
+// -- Helpers for preventing default touch behaviors --
+
+function preventDefault(e: Event) {
+  e.preventDefault()
+}
+
+function preventDefaultIfCanvas(e: Event) {
+  // Prevent pull-to-refresh / overscroll when touching the canvas
+  if (e.target instanceof HTMLCanvasElement) {
+    e.preventDefault()
   }
 }
 

@@ -27,7 +27,7 @@ export function Canvas() {
   return (
     <canvas
       ref={canvasRef}
-      className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing"
+      className="absolute inset-0 w-full h-full cursor-grab active:cursor-grabbing touch-none"
     />
   )
 }
