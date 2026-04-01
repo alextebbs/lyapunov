@@ -41,12 +41,10 @@ export function Toolbar() {
             <ShareButton />
           </div>
 
-          {/* Keyboard shortcuts */}
+          {/* Gesture hints */}
           <div className="text-xs text-white/30 space-y-1">
-            <p>Arrow keys: Pan</p>
-            <p>+/- : Zoom</p>
-            <p>Scroll: Zoom to cursor</p>
-            <p>Home: Reset view</p>
+            <p>Drag: Pan</p>
+            <p>Scroll / Pinch: Zoom</p>
           </div>
         </div>
       </div>

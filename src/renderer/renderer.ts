@@ -357,9 +357,6 @@ export class LyapunovRenderer {
 
     // Prevent pull-to-refresh and overscroll globally
     document.addEventListener('touchmove', preventDefaultIfCanvas, { passive: false })
-
-    // Keyboard navigation
-    window.addEventListener('keydown', this.onKeyDown)
   }
 
   removeEventListeners() {
@@ -376,7 +373,6 @@ export class LyapunovRenderer {
     this.canvas.removeEventListener('gesturechange', preventDefault)
     this.canvas.removeEventListener('gestureend', preventDefault)
     document.removeEventListener('touchmove', preventDefaultIfCanvas)
-    window.removeEventListener('keydown', this.onKeyDown)
   }
 
   // -- Pointer events (mouse + single-finger fallback) --
@@ -550,45 +546,6 @@ export class LyapunovRenderer {
     this.zoomAt(e.clientX, e.clientY, zoomDelta)
     this.markInteracting()
     this.markInteractionEnd()
-  }
-
-  // -- Keyboard --
-
-  private onKeyDown = (e: KeyboardEvent) => {
-    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-
-    const panAmount = 0.1 / this._zoom * 4
-    switch (e.key) {
-      case 'ArrowLeft':
-        this._center[0] -= panAmount
-        break
-      case 'ArrowRight':
-        this._center[0] += panAmount
-        break
-      case 'ArrowUp':
-        this._center[1] += panAmount
-        break
-      case 'ArrowDown':
-        this._center[1] -= panAmount
-        break
-      case '=':
-      case '+':
-        this.targetZoom *= 1.2
-        break
-      case '-':
-        this.targetZoom /= 1.2
-        break
-      case 'Home':
-        this._center = [2.5, 3.5]
-        this.targetZoom = 1
-        break
-      default:
-        return
-    }
-    e.preventDefault()
-    this.needsRecompute = true
-    this.tileCache.markAllDirty()
-    this.notifyStateChange()
   }
 
   private markInteracting() {
