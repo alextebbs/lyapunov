@@ -263,7 +263,30 @@ SA works best when the orbit is stable (not chaotic). In chaotic regions, the co
 
 ---
 
-## Part 6: Implementation Plan
+## Part 6: Key Insight — Lyapunov is Easier Than Mandelbrot
+
+Unlike the Mandelbrot set (where both the coordinate `c` AND the orbit `z` require arbitrary precision at deep zoom), the Lyapunov fractal orbit `x` stays bounded in [0,1] and never needs high precision. **Only the parameter coordinates `(a, b)` need arbitrary precision** to distinguish nearby pixels.
+
+This means we have two viable approaches:
+
+### Approach A: Parameter-Only Precision (simpler, likely sufficient)
+
+1. Compute `(a_ref, b_ref)` at arbitrary precision on CPU
+2. For each pixel, compute `δa = pixel_a - a_ref` and `δb = pixel_b - b_ref` in float32
+3. In the shader, use `a = a_ref_high + a_ref_low + δa` (or just pass δa directly)
+4. Iterate the logistic map normally — the orbit itself needs only float32
+
+This is essentially extending our current double-float emulation to arbitrary precision. **No orbit perturbation needed.** The GPU shader barely changes — only the coordinate computation.
+
+### Approach B: Full Perturbation (for performance via SA)
+
+Full orbit perturbation as described in Parts 1-5. More complex but enables series approximation to skip early iterations. Worth doing only if Phase 1 (Approach A) proves too slow at extreme zoom due to high iteration counts.
+
+**Recommendation**: Implement Approach A first. It's simpler, lower-risk, and solves the precision problem. Add Approach B later only if iteration skipping becomes important for performance.
+
+---
+
+## Part 7: Implementation Plan
 
 ### Phase 1: Core Perturbation (MVP)
 
@@ -308,7 +331,7 @@ SA works best when the orbit is stable (not chaotic). In chaotic regions, the co
 
 ---
 
-## Part 7: Performance Characteristics
+## Part 8: Performance Characteristics
 
 ### Current System
 | Zoom Range | Method | Precision |
@@ -332,7 +355,7 @@ SA works best when the orbit is stable (not chaotic). In chaotic regions, the co
 
 ---
 
-## Part 8: Risks and Mitigations
+## Part 9: Risks and Mitigations
 
 | Risk | Mitigation |
 |------|------------|
@@ -345,7 +368,7 @@ SA works best when the orbit is stable (not chaotic). In chaotic regions, the co
 
 ---
 
-## Part 9: Perturbation Recurrences for Other Map Functions
+## Part 10: Perturbation Recurrences for Other Map Functions
 
 ### Sine Map: `f(x) = (r/4)·sin(πx)`
 ```
