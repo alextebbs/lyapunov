@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { SequenceEditor } from './SequenceEditor'
 import { GradientEditor } from './GradientEditor'
+import { ScenePresets } from './ScenePresets'
 import { ShareButton } from './ShareButton'
 import { useAppState } from '../state/context'
 
@@ -34,6 +35,7 @@ export function Toolbar() {
             </p>
           </div>
 
+          <ScenePresets />
           <SequenceEditor />
           <GradientEditor />
 

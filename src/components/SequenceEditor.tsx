@@ -5,9 +5,11 @@ import { sequenceToDisplayString, displayStringToSequence } from '../lib/url'
 const PRESETS = [
   { label: 'AB', value: 'AB' },
   { label: 'AABAB', value: 'AABAB' },
-  { label: 'ABBBBA', value: 'ABBBBA' },
-  { label: 'BBBBBBA', value: 'BBBBBBA' },
-  { label: 'AAABABBB', value: 'AAABABBB' },
+  { label: 'ABBAAB', value: 'ABBAAB' },
+  { label: 'BBAABA', value: 'BBAABA' },
+  { label: 'BBBBBBAAAAAA', value: 'BBBBBBAAAAAA' },
+  { label: 'AAABBBAAABBB', value: 'AAABBBAAABBB' },
+  { label: 'AABBAABB', value: 'AABBAABB' },
 ]
 
 export function SequenceEditor() {
